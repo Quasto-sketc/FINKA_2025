@@ -1,0 +1,21 @@
+project:
+  type: website
+  title: "FINKA_2025"
+
+editor: visual
+
+website:
+  title: "today"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+      - finka_2025.qmd
+      - finka_2025_präsentationen.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true

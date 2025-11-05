@@ -1,0 +1,674 @@
+---
+title: "finka_2025_präsentationen"
+author: "Johannes Quente"
+format:
+  html:
+    toc: true
+    code-fold: true       # enable folding for all code cells
+    code-tools: true      # adds “Show code” buttonseditor: visual
+editor-options:
+  chunk-output-type: console
+execute:
+  echo: false
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(tidyselect)
+library(plotly)
+library(stringr)
+library(openxlsx)
+library(purrr)
+library(forcats)
+library(knitr)
+```
+
+```{r}
+setwd("C:/Andere/Stefan/FINKA")
+
+result_all <- read_xlsx("20250924_FINKA_Daten_betriebflorafauna_1.xlsx")
+
+table1 <- result_all %>%
+  select(kultur, kulturartengruppe) %>%
+  unique() 
+
+table2 <- result_all %>%
+  select(kultur, kulturartengruppe) %>%
+  unique() %>%
+  filter(
+    !is.na(kulturartengruppe),
+    kultur != "NA",
+    kulturartengruppe != "NA"
+  )  
+
+
+# Overwrite values in table1 using table2
+result_all <- result_all %>%
+  select(-kulturartengruppe) %>%  # only keep kultur (we'll join the updated values)
+  right_join(
+    table2 %>% select(kultur, kulturartengruppe),
+    by = "kultur"
+  ) 
+
+## TEST
+
+table1_updated_test <- result_all %>%
+  select(-kulturartengruppe) %>%  # only keep kultur (we'll join the updated values)
+  right_join(
+    table2 %>% select(kultur, kulturartengruppe),
+    by = "kultur"
+  ) %>% select(kultur, kulturartengruppe, deckung_flora)
+
+# View result
+# table1_updated_test$deckung_flora %>% unique()
+
+# result_all %>% names()
+# 
+# result_all %>% str()
+
+# "jahr"                            "betrieb"                         "id"                           
+# "flaeche"                         "zusatzflaeche"                   "group"                        
+# "flaechenrotation"                "jahr_umstellung"                 "vorfrucht"                    
+# "kultur"                          "kulturartengruppe"               "crop_clean"             
+
+# "rote_liste NI"                   "rote_liste D"                    "hnv_taxa"                     
+# "hnv_wertgruppe"                  "deckung_flora"                   "bluehende_pflanzen"           
+# "deckung_kultur"                  "artenzahl_flora"              
+
+
+
+# "deckung_flora"                   "bluehende_pflanzen"           
+# "deckung_kultur"                  "artenzahl_flora"     
+```
+
+
+```{r}
+clean_name <- function(x) {
+  x %>%
+    tolower() %>%
+    trimws() %>%
+    gsub("_gps", "", .)  # remove '_gps' suffix if not meaningful
+}
+
+table1 <- table1 %>%
+  mutate(kultur_clean = clean_name(kultur))
+
+table2 <- table2 %>%
+  mutate(kultur_clean = clean_name(kultur))
+
+table1_filled <- table1 %>%
+  left_join(table2, by = "kultur_clean", suffix = c("", "_new")) %>%
+  mutate(
+    kulturartengruppe = coalesce(kulturartengruppe, kulturartengruppe_new)
+  ) %>%
+  select(kultur, kulturartengruppe)
+
+
+# table1_filled %>% head(50)
+```
+
+
+```{r eval=FALSE}
+# Find common columns between the two data frames
+common_columns <- intersect(names(result_2024), names(result_2025))
+
+# Select only the matching columns from both data frames
+result_2024_common <- result_2024[, common_columns, drop = FALSE]
+result_2025_common <- result_2025[, common_columns, drop = FALSE]
+
+# Get the common column names between both data frames
+common_cols <- intersect(names(result_2024_common), names(result_2025_common))
+
+# Select only the common columns from result_2_common
+result_2_common_filtered <- result_2024_common[, common_cols]
+
+
+# Now you can safely use rbind
+combined <- rbind(result_2025_common, result_2_common_filtered)
+
+
+combined <- combined %>% 
+  mutate(Deckungsgrad_Kultur_prozent = replace(Deckungsgrad_Kultur_prozent, is.na(Deckungsgrad_Kultur_prozent), "k.A")) %>%
+  mutate(Deckungsgrad_Kultur_prozent = as.numeric(Deckungsgrad_Kultur_prozent)) %>%
+  mutate(Deckungsgrad_Segetalarten_prozent = replace(Deckungsgrad_Segetalarten_prozent, is.na(Deckungsgrad_Segetalarten_prozent), "k.A")) %>%
+  mutate(Deckungsgrad_Segetalarten_prozent = as.numeric(Deckungsgrad_Segetalarten_prozent)) %>%
+  mutate(Artenzahl_Plot_100_qm_Spontanflora_n = replace(Artenzahl_Plot_100_qm_Spontanflora_n, is.na(Artenzahl_Plot_100_qm_Spontanflora_n), "k.A")) %>%
+  mutate(Artenzahl_Plot_100_qm_Spontanflora_n = as.numeric(Artenzahl_Plot_100_qm_Spontanflora_n)) %>%
+  mutate(Bluehquadrate_Mittel_Blühpflanzen_n = replace(Bluehquadrate_Mittel_Blühpflanzen_n, is.na(Bluehquadrate_Mittel_Blühpflanzen_n), "k.A")) %>%
+  mutate(Bluehquadrate_Mittel_Blühpflanzen_n = as.numeric(Bluehquadrate_Mittel_Blühpflanzen_n))
+
+```
+
+```{r}
+result_all_numerics <- result_all %>% 
+  mutate(deckung_flora = as.numeric(deckung_flora)) %>% 
+  mutate(deckung_kultur = as.numeric(deckung_kultur)) %>% 
+  mutate(bluehende_pflanzen = as.numeric(bluehende_pflanzen)) %>% 
+  mutate(artenzahl_flora = as.numeric(artenzahl_flora)) %>% 
+  mutate(hnv_taxa = as.numeric(hnv_taxa))
+
+combined   <- result_all_numerics
+
+select_herbizidfrei  <- result_all_numerics %>% filter(group == "m")
+select_konventionell <- result_all_numerics %>% filter(group == "k")
+select_ökologisch    <- result_all_numerics %>% filter(group == "b")
+```
+
+```{r}
+mytheme <- theme_classic() + 
+  theme(axis.line = element_line(color = "black", size=0.6), 
+        axis.text = element_text(size = 13, color = "black"), 
+        axis.title = element_text(size = 13, color = "black"), 
+        axis.ticks = element_line(size = 0.6, color = "black"))
+```
+
+
+
+### old Statistical Prep.
+```{r eval=FALSE}
+gruppe1  <-  combined %>% filter(kulturartengruppe == "1")
+gruppe8  <-  combined %>% filter(kulturartengruppe == "8")
+
+# Compute group-wise yearly means
+gruppe1_means <- gruppe1 %>%
+  group_by(group, jahr) %>%
+  summarise(mean_deckung = mean(deckung_flora, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::complete(group, jahr, fill = list(mean_deckung = NA))
+
+# Create combined x-axis (group and year)
+gruppe1 <- gruppe1 %>%
+  mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+gruppe8 <- gruppe8 %>%
+  mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+
+
+gruppe1_means <- gruppe1_means %>%
+  mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+
+```
+
+
+### Leveling Groups 
+```{r eval=FALSE}
+# 1) Build ordered levels (handles values like "k_2022", "k2022", etc.)
+ord_df <- tibble(gj = unique(as.character(gruppe8$group_jahr))) %>%
+  mutate(
+    # prefix: letters before underscore or before digits
+    prefix = str_extract(gj, "^[A-Za-z]+") %>% tolower(),
+    # year: first 4-digit number found
+    year = str_extract(gj, "\\d{4}") %>% as.integer(),
+    # numeric rank for the prefix so we get k -> 1, m -> 2, b -> 3
+    prefix_rank = case_when(
+      prefix == "k" ~ 1L,
+      prefix == "m" ~ 2L,
+      prefix == "b" ~ 3L,
+      TRUE ~ 4L
+    )
+  ) %>%
+  # put rows with NA year at the end; within same year sort by prefix_rank
+  arrange(is.na(year), year, prefix_rank, gj)
+
+new_levels <- ord_df$gj
+
+# 2) Apply factor levels to the main data and to the stats data used for lines
+gruppe8 <- gruppe8 %>%
+  mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+
+# If gruppe1_stats contains group_jahr too, make sure it has the same factor levels
+if ("gruppe1_stats" %in% ls()) {
+  gruppe1_stats <- gruppe1_stats %>%
+    mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+}
+```
+
+```{r eval=FALSE}
+# 1) Build ordered levels (handles values like "k_2022", "k2022", etc.)
+ord_df <- tibble(gj = unique(as.character(gruppe1$group_jahr))) %>%
+  mutate(
+    # prefix: letters before underscore or before digits
+    prefix = str_extract(gj, "^[A-Za-z]+") %>% tolower(),
+    # year: first 4-digit number found
+    year = str_extract(gj, "\\d{4}") %>% as.integer(),
+    # numeric rank for the prefix so we get k -> 1, m -> 2, b -> 3
+    prefix_rank = case_when(
+      prefix == "k" ~ 1L,
+      prefix == "m" ~ 2L,
+      prefix == "b" ~ 3L,
+      TRUE ~ 4L
+    )
+  ) %>%
+  # put rows with NA year at the end; within same year sort by prefix_rank
+  arrange(is.na(year), year, prefix_rank, gj)
+
+new_levels <- ord_df$gj
+
+# 2) Apply factor levels to the main data and to the stats data used for lines
+gruppe1 <- gruppe1 %>%
+  mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+
+# If gruppe1_stats contains group_jahr too, make sure it has the same factor levels
+if ("gruppe1_stats" %in% ls()) {
+  gruppe1_stats <- gruppe1_stats %>%
+    mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+}
+```
+
+```{r eval=FALSE}
+# Define the variables you want statistics for
+vars_to_summarise <- c("artenzahl_flora", "deckung_flora", "bluehende_pflanzen", "deckung_kultur", "hnv_taxa")
+
+
+compute_stats <- function(data) { 
+  data %>%
+    group_by(group, jahr) %>%
+    summarise(
+      across(all_of(vars_to_summarise),
+             list(
+               mean = ~mean(.x, na.rm = TRUE),
+               median = ~median(.x, na.rm = TRUE),
+               sd = ~ifelse(length(na.omit(.x)) > 1, sd(.x, na.rm = TRUE), 0),
+               min = ~min(.x, na.rm = TRUE),
+               max = ~max(.x, na.rm = TRUE)
+             ),
+             .names = "{.col}_{.fn}"),
+      .groups = "drop"
+    ) %>%
+    tidyr::complete(group, jahr)  # Remove the fill = list() argument
+}
+
+
+# Split data by gruppe and compute stats for gruppe 1 and 8
+gruppe_stats <- combined %>%
+  filter(kulturartengruppe %in% c("1", "8")) %>%
+  group_split(kulturartengruppe) %>%
+  set_names(c("gruppe1", "gruppe8")) %>%
+  map(compute_stats)
+
+# Access results:
+gruppe1_stats <- gruppe_stats$gruppe1
+gruppe8_stats <- gruppe_stats$gruppe8
+
+# Add a combined variable for plotting or further processing
+gruppe1_stats <- gruppe1_stats %>% mutate(group_jahr = interaction(group, jahr, sep = "_"))
+gruppe8_stats <- gruppe8_stats %>% mutate(group_jahr = interaction(group, jahr, sep = "_"))
+
+# gruppe1_stats %>% names()
+# gruppe8_stats %>% glimpse()
+```
+
+
+
+### Stats over all groups
+```{r eval=FALSE}
+## Statistical Prep - DRY Version (Fixed)
+
+# Define the groups you want to analyze
+target_groups <- c("1", "5", "6", "7", "8", "9")
+
+# Define the variables you want statistics for
+vars_to_summarise <- c("artenzahl_flora", "deckung_flora", "bluehende_pflanzen", 
+                       "deckung_kultur", "hnv_taxa")
+
+# Function to compute statistics
+compute_stats <- function(data) { 
+  data %>%
+    group_by(group, jahr) %>%
+    summarise(
+      across(all_of(vars_to_summarise),
+             list(
+               mean = ~mean(.x, na.rm = TRUE),
+               median = ~median(.x, na.rm = TRUE),
+               sd = ~ifelse(length(na.omit(.x)) > 1, sd(.x, na.rm = TRUE), 0),
+               min = ~min(.x, na.rm = TRUE),
+               max = ~max(.x, na.rm = TRUE)
+             ),
+             .names = "{.col}_{.fn}"),
+      .groups = "drop"
+    ) %>%
+    tidyr::complete(group, jahr)
+}
+
+# Function to create ordered factor levels for group_jahr
+create_ordered_levels <- function(group_jahr_vector) {
+  ord_df <- tibble(gj = unique(as.character(group_jahr_vector))) %>%
+    mutate(
+      prefix = str_extract(gj, "^[A-Za-z]+") %>% tolower(),
+      year = str_extract(gj, "\\d{4}") %>% as.integer(),
+      prefix_rank = case_when(
+        prefix == "k" ~ 1L,
+        prefix == "m" ~ 2L,
+        prefix == "b" ~ 3L,
+        TRUE ~ 4L
+      )
+    ) %>%
+    arrange(is.na(year), year, prefix_rank, gj)
+  
+  return(ord_df$gj)
+}
+
+# Function to process each group
+process_group <- function(data, group_number) {
+  # Filter for specific kulturartengruppe
+  filtered_data <- data %>% 
+    filter(kulturartengruppe == group_number) %>%
+    mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+  
+  # Create ordered levels and apply them
+  new_levels <- create_ordered_levels(filtered_data$group_jahr)
+  filtered_data <- filtered_data %>%
+    mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+  
+  return(filtered_data)
+}
+
+# Process all groups and create separate dataframes
+gruppe_data <- target_groups %>%
+  set_names(paste0("gruppe", .)) %>%
+  map(~process_group(combined, .x))
+
+# Compute statistics for all groups - FIXED VERSION
+gruppe_stats_list <- target_groups %>%
+  set_names(paste0("gruppe", ., "_stats")) %>%
+  map(~{
+    # Filter for this specific group
+    data <- combined %>% filter(kulturartengruppe == .x)
+    # Compute stats
+    stats <- compute_stats(data)
+    # Add group_jahr and apply ordered levels
+    stats <- stats %>% mutate(group_jahr = interaction(group, jahr, sep = "_"))
+    new_levels <- create_ordered_levels(stats$group_jahr)
+    stats %>% mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+  })
+
+# Extract individual dataframes for easy access
+list2env(gruppe_data, envir = .GlobalEnv)
+list2env(gruppe_stats_list, envir = .GlobalEnv)
+
+# # Verify the objects exist
+# cat("Created data objects:\n")
+# ls(pattern = "^gruppe[0-9]$")
+# cat("\nCreated stats objects:\n")
+# ls(pattern = "^gruppe[0-9]_stats$")
+
+
+# gruppe1, gruppe5, gruppe6, gruppe7, gruppe8, gruppe9 (filtered data with group_jahr)
+# gruppe1_stats, gruppe5_stats, gruppe6_stats, gruppe7_stats, gruppe8_stats, gruppe9_stats
+
+```
+
+
+
+
+# Präsentation
+
+
+```{r eval=FALSE}
+select_konventionell %>% names()
+
+"artenzahl_flora" 
+"deckung_flora" 
+"bluehende_pflanzen"   
+
+```
+
+
+
+## Herbizidfreie Bewirtschaftung 
+
+### artenzahl_flora
+
+```{r}
+
+#' ## Boxplots: x=Bewirtschaftung, y=Deckungsgrad_Kultur_prozent
+ggplot(select_herbizidfrei, aes(group, artenzahl_flora)) + 
+  geom_boxplot(fill = "grey90") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_blank()) + # Remove x-axis text labels  ) 
+  facet_wrap(~jahr, nrow = 1) +
+  labs(x = "\n Herbizidfreie Bewirtschaftung", y = "Artenzahl Flora [n]\n") +
+  theme(legend.position="none") +
+  stat_summary(fun=mean, geom="point", shape=23, size=4) +
+  geom_jitter(shape=16, position=position_jitter(0.2)) +
+  stat_boxplot(geom='errorbar', linetype=1, width=0.5) # whiskers 
+```
+
+### bluehende_pflanzen
+
+```{r}
+
+#' ## Boxplots: x=Bewirtschaftung, y=Deckungsgrad_Kultur_prozent
+ggplot(select_herbizidfrei, aes(group, bluehende_pflanzen)) + 
+  geom_boxplot(fill = "grey90") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_blank()) + # Remove x-axis text labels  ) 
+  facet_wrap(~jahr, nrow = 1) +
+  labs(x = "\n Herbizidfreie Bewirtschaftung", y = "Anzahl Blühpflanzen pro m² [n] \n") +
+  theme(legend.position="none") +
+  stat_summary(fun=mean, geom="point", shape=23, size=4) +
+  geom_jitter(shape=16, position=position_jitter(0.2)) +
+  stat_boxplot(geom='errorbar', linetype=1, width=0.5) # whiskers 
+```
+
+### deckung_flora
+
+```{r}
+#' ## Boxplots: x=Bewirtschaftung, y=Deckungsgrad_Kultur_prozent
+ggplot(select_herbizidfrei, aes(group, deckung_flora)) + 
+  geom_boxplot(fill = "grey90") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_blank()) + # Remove x-axis text labels  ) 
+  facet_wrap(~jahr, nrow = 1) +
+  labs(x = "\n Herbizidfreie Bewirtschaftung", y = "Deckungsgrad Segetalarten [%]\n") +
+  theme(legend.position="none") +
+  stat_summary(fun=mean, geom="point", shape=23, size=4) +
+  geom_jitter(shape=16, position=position_jitter(0.2)) +
+  stat_boxplot(geom='errorbar', linetype=1, width=0.5) # whiskers 
+```
+
+
+## 2021 - 2025
+
+### Deckung Segetal
+
+```{r}
+ggplot(combined, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = deckung_flora, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Deckungsgrad Segetalarten [%]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"  # Entferne Legende, da Achsenbeschriftung klar
+  )
+```
+
+### Artenzahl
+
+```{r}
+ggplot(combined, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = artenzahl_flora, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Artenzahl Segetalflora [n]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+   theme(
+    legend.position = "none"  
+  )
+```
+
+
+
+### Anzahl Blütenpflanzen
+
+```{r}
+ggplot(combined, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = bluehende_pflanzen, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Anzahl Blühpflanzen pro m² [n] \n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    legend.position = "none"  
+  )
+```
+
+
+
+### log10(Anzahl Blütenpflanzen)
+
+```{r}
+ggplot(combined, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = log10(bluehende_pflanzen + 1), fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    legend.position = "none"  
+  )
+```
+
+
+## 2025 Daten
+
+```{r}
+combined_25 <- combined %>% filter (jahr == 2025)
+
+# "artenzahl_flora" 
+# "deckung_flora" 
+# "bluehende_pflanzen"   
+```
+
+
+### Deckung Segetal
+
+```{r}
+ggplot(combined_25, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = deckung_flora, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Deckungsgrad Segetalarten [%]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"  # Entferne Legende, da Achsenbeschriftung klar
+  )
+```
+
+### Artenzahl
+
+```{r}
+ggplot(combined_25, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = artenzahl_flora, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Artenzahl Segetalflora [n]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+   theme(
+    legend.position = "none"  
+  )
+```
+
+
+
+### Anzahl Blütenpflanzen
+
+```{r}
+ggplot(combined_25, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = bluehende_pflanzen, fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "Anzahl Blühpflanzen pro m² [n] \n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    legend.position = "none"  
+  )
+```
+
+
+
+### log10(Anzahl Blütenpflanzen)
+
+```{r}
+ggplot(combined_25, aes(x = factor(group, levels = c("k", "m", "b"),
+                                   labels = c("konventionell", "herbizidfrei", "ökologisch")),
+                        y = log10(bluehende_pflanzen + 1), fill = group)) +
+  geom_boxplot() +
+  stat_boxplot(geom = 'errorbar', width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 4, fill = "white") +
+  geom_jitter(shape = 16, position = position_jitter(0.2), alpha = 0.6) +
+  scale_fill_manual(values = c("k" = "grey90", "m" = "grey70", "b" = "grey50"),
+                    labels = c("konventionell", "herbizidfrei", "ökologisch")) +
+  labs(x = "\nBewirtschaftung",
+       y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+       fill = "Bewirtschaftung") +
+  theme_classic() +
+  theme(
+    legend.position = "none"  
+  )
+```
+
+

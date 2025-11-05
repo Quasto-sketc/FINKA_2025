@@ -1,0 +1,3226 @@
+---
+title: "2020 - 2025"
+author: "Johannes Quente"
+format:
+  html:
+    toc: true
+    code-fold: true       # enable folding for all code cells
+    code-tools: true      # adds “Show code” buttonseditor: visual
+editor-options:
+  chunk-output-type: console
+execute:
+  echo: false
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(tidyselect)
+library(plotly)
+library(stringr)
+library(openxlsx)
+library(purrr)
+library(forcats)
+library(knitr)
+```
+
+```{r}
+setwd("C:/Andere/Stefan/FINKA")
+
+result_all <- read_xlsx("20250924_FINKA_Daten_betriebflorafauna_1.xlsx")
+
+# result_all %>% select(kultur, kulturartengruppe) %>% unique() %>% na.omit() %>% View()
+
+## incl. NA
+
+table1 <- result_all %>%
+  select(kultur, kulturartengruppe) %>%
+  unique() 
+  # %>% head(10)
+
+## remove NA
+
+table2 <- result_all %>%
+  select(kultur, kulturartengruppe) %>%
+  unique() %>%
+  filter(
+    !is.na(kulturartengruppe),
+    kultur != "NA",
+    kulturartengruppe != "NA"
+  )  
+  # %>% head(10)
+
+
+# Overwrite values in table1 using table2
+result_all <- result_all %>%
+  select(-kulturartengruppe) %>%  # only keep kultur (we'll join the updated values)
+  right_join(
+    table2 %>% select(kultur, kulturartengruppe),
+    by = "kultur"
+  ) 
+
+## TEST
+
+table1_updated_test <- result_all %>%
+  select(-kulturartengruppe) %>%  # only keep kultur (we'll join the updated values)
+  right_join(
+    table2 %>% select(kultur, kulturartengruppe),
+    by = "kultur"
+  ) %>% select(kultur, kulturartengruppe, deckung_flora)
+
+clean_name <- function(x) {
+  x %>%
+    tolower() %>%
+    trimws() %>%
+    gsub("_gps", "", .)  # remove '_gps' suffix if not meaningful
+}
+
+table1 <- table1 %>%
+  mutate(kultur_clean = clean_name(kultur))
+
+table2 <- table2 %>%
+  mutate(kultur_clean = clean_name(kultur))
+
+table1_filled <- table1 %>%
+  left_join(table2, by = "kultur_clean", suffix = c("", "_new")) %>%
+  mutate(
+    kulturartengruppe = coalesce(kulturartengruppe, kulturartengruppe_new)
+  ) %>%
+  select(kultur, kulturartengruppe)
+
+
+```
+
+Kulturartengruppen:
+
+1             Winterweizen/Dinkel
+
+2             Winterroggen/Triticale
+
+3             Wintergerste/Winterhafer
+
+4             Sommergerste/Sommerweizen/Sommerhafer/Gemenge
+
+5             Kartoffeln
+
+6             Zuckerrüben
+
+7             Winterraps
+
+8             Mais
+
+9             Körnerleguminosen (Ackerbohne, Lupine)
+
+10            Sonstigen (z.B. Feldfutter, Weidelgras)
+
+
+```{r}
+result_all_numerics <- result_all %>% 
+  mutate(deckung_flora = as.numeric(deckung_flora)) %>% 
+  mutate(deckung_kultur = as.numeric(deckung_kultur)) %>% 
+  mutate(bluehende_pflanzen = as.numeric(bluehende_pflanzen)) %>% 
+  mutate(artenzahl_flora = as.numeric(artenzahl_flora)) %>% 
+  mutate(hnv_taxa = as.numeric(hnv_taxa))
+
+combined   <- result_all_numerics
+
+select_herbizidfrei  <- result_all_numerics %>% filter(group == "m")
+select_konventionell <- result_all_numerics %>% filter(group == "k")
+select_ökologisch    <- result_all_numerics %>% filter(group == "b")
+```
+
+```{r}
+mytheme <- theme_classic() + 
+  theme(axis.line = element_line(color = "black", size=0.6), 
+        axis.text = element_text(size = 13, color = "black"), 
+        axis.title = element_text(size = 13, color = "black"), 
+        axis.ticks = element_line(size = 0.6, color = "black"))
+```
+
+
+# Statistics
+```{r}
+## Statistical Prep - DRY Version (Fixed)
+
+# Define the groups you want to analyze
+target_groups <- c("1", "2", "5", "6", "7", "8", "9")
+
+# Define the variables you want statistics for
+vars_to_summarise <- c("artenzahl_flora", "deckung_flora", "bluehende_pflanzen", 
+                       "deckung_kultur", "hnv_taxa")
+
+# Function to compute statistics
+compute_stats <- function(data) { 
+  data %>%
+    group_by(group, jahr) %>%
+    summarise(
+      across(all_of(vars_to_summarise),
+             list(
+               mean = ~mean(.x, na.rm = TRUE),
+               median = ~median(.x, na.rm = TRUE),
+               sd = ~ifelse(length(na.omit(.x)) > 1, sd(.x, na.rm = TRUE), 0),
+               min = ~min(.x, na.rm = TRUE),
+               max = ~max(.x, na.rm = TRUE)
+             ),
+             .names = "{.col}_{.fn}"),
+      .groups = "drop"
+    ) %>%
+    tidyr::complete(group, jahr)
+}
+
+# Function to create ordered factor levels for group_jahr
+create_ordered_levels <- function(group_jahr_vector) {
+  ord_df <- tibble(gj = unique(as.character(group_jahr_vector))) %>%
+    mutate(
+      prefix = str_extract(gj, "^[A-Za-z]+") %>% tolower(),
+      year = str_extract(gj, "\\d{4}") %>% as.integer(),
+      prefix_rank = case_when(
+        prefix == "k" ~ 1L,
+        prefix == "m" ~ 2L,
+        prefix == "b" ~ 3L,
+        TRUE ~ 4L
+      )
+    ) %>%
+    arrange(is.na(year), year, prefix_rank, gj)
+  
+  return(ord_df$gj)
+}
+
+# Function to process each group
+process_group <- function(data, group_number) {
+  # Filter for specific kulturartengruppe
+  filtered_data <- data %>% 
+    filter(kulturartengruppe == group_number) %>%
+    mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+  
+  # Create ordered levels and apply them
+  new_levels <- create_ordered_levels(filtered_data$group_jahr)
+  filtered_data <- filtered_data %>%
+    mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+  
+  return(filtered_data)
+}
+
+# Process all groups and create separate dataframes
+gruppe_data <- target_groups %>%
+  set_names(paste0("gruppe", .)) %>%
+  map(~process_group(combined, .x))
+
+# Compute statistics for all groups - FIXED VERSION
+gruppe_stats_list <- target_groups %>%
+  set_names(paste0("gruppe", ., "_stats")) %>%
+  map(~{
+    # Filter for this specific group
+    data <- combined %>% filter(kulturartengruppe == .x)
+    # Compute stats
+    stats <- compute_stats(data)
+    # Add group_jahr and apply ordered levels
+    stats <- stats %>% mutate(group_jahr = interaction(group, jahr, sep = "_"))
+    new_levels <- create_ordered_levels(stats$group_jahr)
+    stats %>% mutate(group_jahr = factor(as.character(group_jahr), levels = new_levels))
+  })
+
+# Extract individual dataframes for easy access
+list2env(gruppe_data, envir = .GlobalEnv)
+list2env(gruppe_stats_list, envir = .GlobalEnv)
+
+# # Verify the objects exist
+# cat("Created data objects:\n")
+# ls(pattern = "^gruppe[0-9]$")
+# cat("\nCreated stats objects:\n")
+# ls(pattern = "^gruppe[0-9]_stats$")
+
+
+# gruppe1, gruppe5, gruppe6, gruppe7, gruppe8, gruppe9 (filtered data with group_jahr)
+# gruppe1_stats, gruppe5_stats, gruppe6_stats, gruppe7_stats, gruppe8_stats, gruppe9_stats
+
+```
+
+## Gruppe 1 Statistiken
+```{r}
+gruppe1_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+## Gruppe 2 Statistiken
+```{r}
+gruppe2_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+## Gruppe 5 Statistiken
+```{r}
+gruppe5_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+## Gruppe 6 Statistiken
+```{r}
+gruppe6_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+## Gruppe 7 Statistiken
+```{r}
+gruppe7_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+
+## Gruppe 8 Statistiken
+```{r}
+gruppe8_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+
+## Gruppe 9 Statistiken
+```{r}
+gruppe9_stats %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics by group and year (original column names)",
+    digits = 2
+  )
+```
+
+
+
+# Deckungsgrad Segetalarten [%]
+
+## Gruppe 1
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe1, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+## Gruppe 2
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe2, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe2_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe2_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+## Gruppe 5
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe5, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe5_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe5_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+## Gruppe 6
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe6, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe6_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe6_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+## Gruppe 7
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe7, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe7_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe7_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+## Gruppe 8
+
+```{r}
+# Plot
+ggplot(gruppe8, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+
+## Gruppe 9
+
+```{r}
+# gruppe1_stats
+
+# Plot
+ggplot(gruppe9, aes(x = group_jahr, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe9_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe9_stats,
+    aes(x = group_jahr, y = deckung_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Segetalarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+
+
+
+
+# Anzahl Blühpflanzen pro m²
+
+## Gruppe 1
+
+```{r}
+
+# Plot
+ggplot(gruppe1, aes(x = group_jahr, y = bluehende_pflanzen, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Anzahl Blühpflanzen pro m² [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+```{r}
+ggplot(gruppe1, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Gruppe 2
+
+```{r}
+
+# Plot
+ggplot(gruppe2, aes(x = group_jahr, y = bluehende_pflanzen, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe2_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe2_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Anzahl Blühpflanzen pro m² [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+```{r}
+ggplot(gruppe2, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Gruppe 5
+```{r}
+ggplot(gruppe5, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+## Gruppe 6
+```{r}
+ggplot(gruppe6, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+## Gruppe 7
+```{r}
+ggplot(gruppe7, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Gruppe 8
+
+
+```{r}
+# Plot
+ggplot(gruppe8, aes(x = group_jahr, y = bluehende_pflanzen, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = bluehende_pflanzen_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Anzahl Blühpflanzen pro m² [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+```{r}
+ggplot(gruppe8, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+```{r eval=FALSE}
+# Ensure gruppe1_means is correctly formatted
+gruppe1_means <- gruppe1 %>%
+  group_by(group, jahr) %>%
+  summarise(mean_deckung = mean(deckung_flora, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::complete(group, jahr, fill = list(mean_deckung = NA))
+
+# Modified ggplot code
+ggplot(gruppe1, aes(x = group, y = deckung_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(
+    fun.data = "mean_se", geom = "errorbar", width = 0.2, linetype = 1, na.rm = TRUE
+  ) +
+  # Jittered points for individual observations
+  geom_jitter(
+    shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE
+  ) +
+  # Mean points as red diamonds
+  stat_summary(
+    fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE
+  ) +
+  # Line connecting mean values for each group across years
+  geom_line(
+    data = gruppe1_means, 
+    aes(x = as.numeric(factor(jahr)), y = mean_deckung, group = group),
+    color = "black", linewidth = 1, na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_means, 
+    aes(x = as.numeric(factor(jahr)), y = mean_deckung, group = group),
+    color = "black", size = 2, na.rm = TRUE
+  ) +
+  # Facet by year
+  facet_wrap(~jahr, nrow = 1, scales = "free_x") +
+  # Apply colors
+  scale_fill_manual(values = c("#4682B4", "#CD9B1D", "#CDB5CD")) +
+  # Labels
+  labs(
+    x = "\nHerbizidfreie Bewirtschaftung",
+    y = "Deckungsgrad Segetalarten [%]\n"
+  ) +
+  # Theme settings
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+
+## Gruppe 9
+```{r}
+ggplot(gruppe9, aes(x = group_jahr, y = log10(bluehende_pflanzen + 1), fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "log10(Anzahl Blühpflanzen pro m² + 1) [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+# Deckungsgrad Kulturarten [%]
+
+## Gruppe 1
+
+```{r}
+ggplot(gruppe1, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = deckung_kultur_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = deckung_kultur_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+## Gruppe 2
+```{r}
+ggplot(gruppe2, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Gruppe 5
+```{r}
+ggplot(gruppe5, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 6
+```{r}
+ggplot(gruppe6, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 7
+```{r}
+ggplot(gruppe7, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 8
+
+```{r}
+ggplot(gruppe8, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = deckung_kultur_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = deckung_kultur_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 9
+```{r}
+ggplot(gruppe9, aes(x = group_jahr, y = deckung_kultur, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+# Artenzahl Flora 
+
+## Gruppe 1
+
+```{r}
+ggplot(gruppe1, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = artenzahl_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = artenzahl_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Artenzahl Flora [n]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 2
+```{r}
+ggplot(gruppe2, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+## Gruppe 5
+```{r}
+ggplot(gruppe5, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+## Gruppe 6
+```{r}
+ggplot(gruppe6, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+## Gruppe 7
+```{r}
+ggplot(gruppe7, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+## Gruppe 8
+
+```{r}
+ggplot(gruppe8, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = artenzahl_flora_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = artenzahl_flora_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+## Gruppe 9
+```{r}
+ggplot(gruppe9, aes(x = group_jahr, y = artenzahl_flora, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "Deckungsgrad Kulturarten [%]\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+# HNV TAXA
+
+## Gruppe 1
+
+```{r}
+ggplot(gruppe1, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = hnv_taxa_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe1_stats,
+    aes(x = group_jahr, y = hnv_taxa_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Gruppe 2
+```{r}
+ggplot(gruppe2, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+## Gruppe 5
+```{r}
+ggplot(gruppe5, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+## Gruppe 6
+```{r}
+ggplot(gruppe6, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+## Gruppe 7
+```{r}
+ggplot(gruppe7, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+## Gruppe 8
+
+```{r}
+ggplot(gruppe8, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  # Line connecting group means over years
+  geom_line(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = hnv_taxa_mean, group = group, color = group),
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  # Points for mean values on the line
+  geom_point(
+    data = gruppe8_stats,
+    aes(x = group_jahr, y = hnv_taxa_mean, color = group),
+    size = 2,
+    na.rm = TRUE
+  ) +
+  # Custom colors
+ # Custom colors and legend order
+scale_fill_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+scale_color_manual(
+  name = "Gruppe",
+  values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+  breaks = c("k", "m", "b")
+) +
+  # Labels
+  labs(
+    x = "\n Gruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+## Gruppe 9
+```{r}
+ggplot(gruppe9, aes(x = group_jahr, y = hnv_taxa, fill = group)) +
+  # Barplot showing mean values
+  stat_summary(fun = "mean", geom = "bar", color = "black", width = 0.4, na.rm = TRUE) +
+  
+  # Error bars for standard error
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = 0.2, na.rm = TRUE) +
+  
+  # Jittered points for individual observations
+  geom_jitter(shape = 16, position = position_jitter(0.1), color = "black", size = 1, na.rm = TRUE) +
+  
+  # Median points as red diamonds
+  stat_summary(fun = "median", geom = "point", shape = 23, size = 4, fill = "red", na.rm = TRUE) +
+  
+  # Line connecting group means over years (calculated from transformed data)
+  stat_summary(
+    aes(group = group, color = group),
+    fun = "mean",
+    geom = "line",
+    linewidth = 1,
+    na.rm = TRUE
+  ) +
+  
+  # Points for mean values on the line
+  stat_summary(
+    aes(color = group),
+    fun = "mean",
+    geom = "point",
+    size = 2,
+    na.rm = TRUE
+  ) +
+  
+  # Custom colors and legend order
+  scale_fill_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    breaks = c("k", "m", "b")
+  ) +
+  
+  # Labels
+  labs(
+    x = "\nGruppe und Jahr",
+    y = "HNV Taxa\n",
+    fill = "Gruppe",
+    color = "Gruppe"
+  ) +
+  
+  # Theme
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+
+
+
+
+
+
+# HNV PLOTS
+
+### leveling hnv; renaming hnv_wertgruppe
+```{r eval=FALSE}
+  combined_mutate <- combined %>%
+  filter(!is.na(hnv_wertgruppe)) %>%  # Remove NA values
+  mutate(hnv_wertgruppe = case_when(
+    hnv_wertgruppe == "1" ~ "I",
+    hnv_wertgruppe == "2" ~ "II",
+    hnv_wertgruppe == "3" ~ "III",
+    hnv_wertgruppe == "0" ~ "X",
+    TRUE ~ hnv_wertgruppe  # Keep all other values as they are
+  )) %>% 
+  filter(!is.na(hnv_wertgruppe) & hnv_wertgruppe != "NA") %>% 
+  mutate(
+    hnv_wertgruppe = as.factor(hnv_wertgruppe),
+    group = as.factor(group),
+    jahr = as.factor(jahr)
+  )
+
+df <- combined_mutate
+
+# Reorder factor levels
+df$hnv_wertgruppe <- factor(df$hnv_wertgruppe, levels = c("X", "III", "II", "I"))
+
+
+
+process_hnv_data <- function(data, gruppe_id) { 
+  df <- data %>%
+    filter(kulturartengruppe == gruppe_id) %>%
+    mutate(
+      group_jahr = interaction(group, jahr, sep = "_", drop = TRUE),
+      hnv_wertgruppe = factor(hnv_wertgruppe, levels = c("X", "III", "II", "I"))
+    )
+  
+  # Counts per HNV group, year, and group (filtered!)
+  hnv_counts <- df %>%
+    group_by(group, jahr, hnv_wertgruppe) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+  
+  # Totals per group_jahr for line geometry
+  hnv_totals <- hnv_counts %>%
+    group_by(group, jahr, group_jahr) %>%
+    summarise(total_count = sum(count), .groups = "drop")
+  
+  # Order x-axis (group_jahr)
+  ord_levels <- hnv_counts %>%
+    distinct(group_jahr, jahr, group) %>%
+    arrange(jahr, factor(group, levels = c("k", "m", "b"))) %>%
+    pull(group_jahr)
+  
+  hnv_counts <- hnv_counts %>%
+    mutate(group_jahr = factor(group_jahr, levels = ord_levels))
+  
+  hnv_totals <- hnv_totals %>%
+    mutate(group_jahr = factor(group_jahr, levels = ord_levels))
+  
+  list(counts = hnv_counts, totals = hnv_totals)
+}
+
+
+# --- Run for kulturartengruppe 1 ---
+gruppe1_results <- process_hnv_data(combined_mutate, "1")
+hnv_counts_g1 <- gruppe1_results$counts
+hnv_totals_g1 <- gruppe1_results$totals
+
+# --- Run for kulturartengruppe 8 ---
+gruppe8_results <- process_hnv_data(combined_mutate, "8")
+hnv_counts_g8 <- gruppe8_results$counts
+hnv_totals_g8 <- gruppe8_results$totals
+```
+
+
+# HNV Werte
+
+```{r}
+### Stats
+## HNV Data Processing - DRY Version with Complete Cases
+
+# Define the groups you want to analyze
+target_groups <- c("1", "2", "5", "6", "7", "8", "9")
+
+# Prepare combined_mutate (this only needs to be done once)
+combined_mutate <- combined %>%
+  filter(!is.na(hnv_wertgruppe)) %>%
+  mutate(hnv_wertgruppe = case_when(
+    hnv_wertgruppe == "1" ~ "I",
+    hnv_wertgruppe == "2" ~ "II",
+    hnv_wertgruppe == "3" ~ "III",
+    hnv_wertgruppe == "0" ~ "X",
+    TRUE ~ hnv_wertgruppe
+  )) %>% 
+  filter(!is.na(hnv_wertgruppe) & hnv_wertgruppe != "NA") %>% 
+  mutate(
+    hnv_wertgruppe = factor(hnv_wertgruppe, levels = c("X", "III", "II", "I")),
+    group = as.factor(group),
+    jahr = as.factor(jahr)
+  )
+
+# Function to process HNV data for a specific kulturartengruppe
+process_hnv_data <- function(data, gruppe_id) { 
+  df <- data %>%
+    filter(kulturartengruppe == gruppe_id) %>%
+    mutate(
+      group_jahr = interaction(group, jahr, sep = "_", drop = TRUE),
+      hnv_wertgruppe = factor(hnv_wertgruppe, levels = c("X", "III", "II", "I"))
+    )
+  
+  # Counts per HNV group, year, and group
+  hnv_counts <- df %>%
+    group_by(group, jahr, hnv_wertgruppe, .drop = FALSE) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    # Complete all combinations to add missing rows with count = 0
+    complete(
+      group, 
+      jahr, 
+      hnv_wertgruppe = factor(c("X", "III", "II", "I"), levels = c("X", "III", "II", "I")),
+      fill = list(count = 0)
+    ) %>%
+    mutate(group_jahr = interaction(group, jahr, sep = "_", drop = TRUE))
+  
+  # Totals per group_jahr for line geometry
+  hnv_totals <- hnv_counts %>%
+    group_by(group, jahr, group_jahr) %>%
+    summarise(total_count = sum(count), .groups = "drop")
+  
+  # Order x-axis (group_jahr)
+  ord_levels <- hnv_counts %>%
+    distinct(group_jahr, jahr, group) %>%
+    arrange(jahr, factor(group, levels = c("k", "m", "b"))) %>%
+    pull(group_jahr)
+  
+  hnv_counts <- hnv_counts %>%
+    mutate(group_jahr = factor(group_jahr, levels = ord_levels))
+  
+  hnv_totals <- hnv_totals %>%
+    mutate(group_jahr = factor(group_jahr, levels = ord_levels))
+  
+  list(counts = hnv_counts, totals = hnv_totals)
+}
+
+# Process all groups at once
+hnv_results <- target_groups %>%
+  set_names(paste0("gruppe", .)) %>%
+  map(~process_hnv_data(combined_mutate, .x))
+
+# Extract counts and totals for each group
+hnv_counts_list <- hnv_results %>%
+  map("counts") %>%
+  set_names(paste0("hnv_counts_g", target_groups))
+
+hnv_totals_list <- hnv_results %>%
+  map("totals") %>%
+  set_names(paste0("hnv_totals_g", target_groups))
+
+# Export to global environment for easy access
+list2env(hnv_counts_list, envir = .GlobalEnv)
+list2env(hnv_totals_list, envir = .GlobalEnv)
+
+# Verify the objects exist
+cat("Created HNV counts objects:\n")
+print(ls(pattern = "^hnv_counts_g[0-9]$"))
+cat("\nCreated HNV totals objects:\n")
+print(ls(pattern = "^hnv_totals_g[0-9]$"))
+```
+
+
+## Gruppe 1
+
+### Gruppe 1 HNV Werte Statistiken
+```{r}
+hnv_counts_g1 %>%
+  filter(count != 0) %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics hnv values where count = 0 (original column names)",
+    digits = 2
+  )
+
+hnv_totals_g1 %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics hnv values (original column names)",
+    digits = 2
+  )
+```
+
+### Plot
+```{r}
+years <- 2021:2025
+hnv_levels <- c("NA", "X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(years, hnv_levels, paste, sep = "_")))
+
+hnv_counts_g1_line <- hnv_counts_g1 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop")
+
+hnv_counts_g1_line <- hnv_counts_g1_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+
+# --- Plot with jitter ---
+ggplot(hnv_counts_g1_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+
+```
+
+### Plot Alternative 
+
+```{r}
+# --- Plot ---
+years <- 2021:2025
+hnv_levels <- c("X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(hnv_levels, years, paste, sep = "_")))
+jahr_hnv_levels <- gsub("^(.*)_(.*)$", "\\2_\\1", jahr_hnv_levels)  # flip order to Jahr_HNV
+
+
+hnv_counts_g1_line <- hnv_counts_g8 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop") %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+hnv_counts_g1_line <- hnv_counts_g1_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+# --- Plot ---
+ggplot(hnv_counts_g1_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+ geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+
+## Gruppe 2
+
+```{r}
+years <- 2021:2025
+hnv_levels <- c("NA", "X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(years, hnv_levels, paste, sep = "_")))
+
+hnv_counts_g2_line <- hnv_counts_g2 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop")
+
+hnv_counts_g2_line <- hnv_counts_g2_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+
+# --- Plot with jitter ---
+ggplot(hnv_counts_g2_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+
+```
+
+### ALternative 
+
+```{r}
+# --- Plot ---
+years <- 2021:2025
+hnv_levels <- c("X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(hnv_levels, years, paste, sep = "_")))
+jahr_hnv_levels <- gsub("^(.*)_(.*)$", "\\2_\\1", jahr_hnv_levels)  # flip order to Jahr_HNV
+
+
+hnv_counts_g2_line <- hnv_counts_g2 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop") %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+hnv_counts_g2_line <- hnv_counts_g2_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+# -- Plot ---
+ggplot(hnv_counts_g2_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+ geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+## Gruppe 8
+
+### Gruppe 8 HNV Werte Statistiken
+```{r}
+hnv_counts_g8 %>%
+  filter(count != 0) %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics hnv values (original column names)",
+    digits = 2
+  )
+
+hnv_totals_g8 %>%
+  mutate(across(where(is.numeric), ~ round(., 2))) %>%
+  kable(
+    caption = "Summary statistics hnv values (original column names)",
+    digits = 2
+  )
+```
+
+### Plot
+
+```{r}
+years <- 2021:2025
+hnv_levels <- c("NA", "X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(years, hnv_levels, paste, sep = "_")))
+
+hnv_counts_g8_line <- hnv_counts_g8 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop")
+
+hnv_counts_g8_line <- hnv_counts_g8_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+
+# --- Plot ---
+ggplot(hnv_counts_g8_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+### Plot Alternative
+
+```{r}
+# --- Plot ---
+years <- 2021:2025
+hnv_levels <- c("X", "III", "II", "I")
+
+jahr_hnv_levels <- as.vector(t(outer(hnv_levels, years, paste, sep = "_")))
+jahr_hnv_levels <- gsub("^(.*)_(.*)$", "\\2_\\1", jahr_hnv_levels)  # flip order to Jahr_HNV
+
+
+hnv_counts_g8_line <- hnv_counts_g8 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop") %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+hnv_counts_g8_line <- hnv_counts_g8_line %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+  
+ggplot(hnv_counts_g8_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.3)) +
+  geom_point(size = 3, position = position_dodge(width = 0.3)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+### Plot Alternative 2 (Kürzerer Plot)
+
+```{r}
+# --- Plot ---
+years <- 2021:2025
+hnv_levels <- c("X", "III", "II", "I")
+jahr_hnv_levels <- as.vector(t(outer(hnv_levels, years, paste, sep = "_")))
+jahr_hnv_levels <- gsub("^(.*)_(.*)$", "\\2_\\1", jahr_hnv_levels)  # flip order to Jahr_HNV
+
+hnv_counts_g8_line <- hnv_counts_g8 %>%
+  mutate(
+    hnv_wertgruppe = ifelse(is.na(hnv_wertgruppe), "NA", as.character(hnv_wertgruppe)),
+    jahr_hnv = paste0(jahr, "_", hnv_wertgruppe),
+    jahr_hnv = factor(jahr_hnv, levels = jahr_hnv_levels)
+  ) %>%
+  group_by(group, jahr_hnv) %>%
+  summarise(count = sum(count), .groups = "drop") %>%
+  mutate(group = factor(group, levels = c("k", "m", "b")))
+
+# Find the last x-position with any non-zero values
+last_nonzero <- hnv_counts_g8_line %>%
+  group_by(jahr_hnv) %>%
+  summarise(any_nonzero = any(count > 0), .groups = "drop") %>%
+  filter(any_nonzero) %>%
+  pull(jahr_hnv) %>%
+  as.character() %>%
+  tail(1)
+
+# Filter data up to and including the last non-zero position
+if (!is.null(last_nonzero) && length(last_nonzero) > 0) {
+  last_level_index <- which(levels(hnv_counts_g8_line$jahr_hnv) == last_nonzero)
+  cutoff_levels <- levels(hnv_counts_g8_line$jahr_hnv)[1:last_level_index]
+  
+  hnv_counts_g8_line <- hnv_counts_g8_line %>%
+    filter(jahr_hnv %in% cutoff_levels) %>%
+    mutate(jahr_hnv = factor(jahr_hnv, levels = cutoff_levels))
+}
+
+ggplot(hnv_counts_g8_line, aes(x = jahr_hnv, y = count, color = group, group = group)) +
+  geom_line(linewidth = 1.2, alpha = 0.7, position = position_dodge(width = 0.1)) +
+  geom_point(size = 3, position = position_dodge(width = 0.1)) +
+  scale_color_manual(
+    name = "Gruppe",
+    values = c("k" = "#4682B4", "m" = "#CD9B1D", "b" = "#CDB5CD"),
+    labels = c("k" = "Konventionell", "m" = "Maßnahme", "b" = "Ökologisch")
+  ) +
+  labs(
+    title = "Gesamtentwicklung der HNV-Wertgruppen",
+    x = "Jahr und HNV-Wertgruppe",
+    y = "Anzahl"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```

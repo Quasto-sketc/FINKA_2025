@@ -1,0 +1,345 @@
+[
+  {
+    "objectID": "finka_2025_präsentationen.html#herbizidfreie-bewirtschaftung",
+    "href": "finka_2025_präsentationen.html#herbizidfreie-bewirtschaftung",
+    "title": "finka_2025_präsentationen",
+    "section": "Herbizidfreie Bewirtschaftung",
+    "text": "Herbizidfreie Bewirtschaftung\n\nartenzahl_flora\n\n\n\n\n\n\n\n\n\n\n\nbluehende_pflanzen\n\n\n\n\n\n\n\n\n\n\n\ndeckung_flora"
+  },
+  {
+    "objectID": "finka_2025_präsentationen.html#section",
+    "href": "finka_2025_präsentationen.html#section",
+    "title": "finka_2025_präsentationen",
+    "section": "2021 - 2025",
+    "text": "2021 - 2025\n\nDeckung Segetal\n\n\n\n\n\n\n\n\n\n\n\nArtenzahl\n\n\n\n\n\n\n\n\n\n\n\nAnzahl Blütenpflanzen\n\n\n\n\n\n\n\n\n\n\n\nlog10(Anzahl Blütenpflanzen)"
+  },
+  {
+    "objectID": "finka_2025_präsentationen.html#daten",
+    "href": "finka_2025_präsentationen.html#daten",
+    "title": "finka_2025_präsentationen",
+    "section": "2025 Daten",
+    "text": "2025 Daten\n\nDeckung Segetal\n\n\n\n\n\n\n\n\n\n\n\nArtenzahl\n\n\n\n\n\n\n\n\n\n\n\nAnzahl Blütenpflanzen\n\n\n\n\n\n\n\n\n\n\n\nlog10(Anzahl Blütenpflanzen)"
+  },
+  {
+    "objectID": "FINKA_2025.html",
+    "href": "FINKA_2025.html",
+    "title": "2020 - 2025",
+    "section": "",
+    "text": "Kulturartengruppen:\n1 Winterweizen/Dinkel\n2 Winterroggen/Triticale\n3 Wintergerste/Winterhafer\n4 Sommergerste/Sommerweizen/Sommerhafer/Gemenge\n5 Kartoffeln\n6 Zuckerrüben\n7 Winterraps\n8 Mais\n9 Körnerleguminosen (Ackerbohne, Lupine)\n10 Sonstigen (z.B. Feldfutter, Weidelgras)"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-statistiken",
+    "href": "FINKA_2025.html#gruppe-1-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1 Statistiken",
+    "text": "Gruppe 1 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2021\n10.69\n10.0\n3.89\n5\n21\n32.26\n25.0\n26.30\n0.5\n90.0\n71.05\n43.33\n82.12\n1.00\n411.00\n50.17\n50.0\n17.60\n25\n90\n2.21\n2\n1.63\n0\n6\nb_2021\n\n\nb\n2022\n6.00\n6.0\n0.00\n6\n6\n0.50\n0.5\n0.00\n0.5\n0.5\n0.00\n0.00\n0.00\n0.00\n0.00\n85.00\n85.0\n0.00\n85\n85\n1.00\n1\n0.00\n1\n1\nb_2022\n\n\nb\n2023\n12.00\n14.5\n4.31\n5\n17\n19.08\n11.0\n23.63\n2.0\n85.0\n56.78\n28.00\n81.31\n5.33\n296.67\n52.50\n57.5\n23.11\n20\n90\n1.33\n1\n1.50\n0\n5\nb_2023\n\n\nb\n2024\n21.75\n22.0\n6.43\n10\n29\n44.00\n45.0\n23.10\n7.0\n70.0\n259.88\n134.65\n343.69\n17.70\n995.30\n25.62\n25.0\n5.63\n20\n35\n4.38\n5\n1.69\n1\n6\nb_2024\n\n\nb\n2025\n15.94\n15.0\n4.97\n8\n27\n18.76\n12.0\n15.49\n1.0\n55.0\n130.25\n60.33\n177.55\n8.67\n577.00\n49.41\n55.0\n18.36\n15\n75\n3.18\n3\n2.04\n0\n8\nb_2025\n\n\nk\n2021\n2.97\n2.0\n2.95\n0\n9\n3.16\n0.5\n6.66\n0.0\n25.0\n6.53\n1.67\n13.43\n0.00\n68.00\n82.55\n90.0\n16.28\n50\n100\n0.52\n0\n0.95\n0\n4\nk_2021\n\n\nk\n2022\n0.67\n0.0\n1.15\n0\n2\n0.17\n0.0\n0.29\n0.0\n0.5\n2.11\n0.00\n3.66\n0.00\n6.33\n78.33\n90.0\n24.66\n50\n95\n0.00\n0\n0.00\n0\n0\nk_2022\n\n\nk\n2023\n1.87\n1.0\n1.81\n0\n6\n0.67\n0.5\n1.50\n0.0\n6.0\n1.60\n0.00\n3.51\n0.00\n13.00\n78.53\n80.0\n12.22\n60\n98\n0.53\n0\n0.83\n0\n2\nk_2023\n\n\nk\n2024\n6.70\n6.5\n5.98\n0\n19\n4.60\n3.5\n4.40\n0.0\n12.0\n8.58\n6.70\n8.38\n0.00\n22.30\n68.50\n80.0\n24.27\n25\n95\n0.80\n0\n1.55\n0\n5\nk_2024\n\n\nk\n2025\n4.53\n4.0\n3.20\n0\n11\n4.85\n3.0\n5.97\n0.0\n20.0\n5.23\n3.33\n7.65\n0.00\n27.33\n69.47\n70.0\n18.02\n30\n95\n0.37\n0\n0.60\n0\n2\nk_2025\n\n\nm\n2021\n6.31\n5.0\n3.72\n0\n14\n28.16\n20.0\n27.30\n0.0\n95.0\n31.94\n23.00\n32.08\n0.00\n110.33\n77.17\n80.0\n18.88\n30\n100\n1.21\n1\n1.37\n0\n5\nm_2021\n\n\nm\n2022\n4.33\n3.0\n3.21\n2\n8\n0.50\n0.5\n0.00\n0.5\n0.5\n0.56\n0.33\n0.38\n0.33\n1.00\n79.33\n98.0\n34.08\n40\n100\n0.33\n0\n0.58\n0\n1\nm_2022\n\n\nm\n2023\n8.80\n10.0\n4.77\n0\n14\n19.87\n5.0\n24.92\n0.0\n80.0\n66.73\n37.67\n94.67\n0.00\n305.00\n65.33\n70.0\n26.82\n0\n95\n1.53\n1\n1.64\n0\n5\nm_2023\n\n\nm\n2024\n10.78\n10.0\n3.93\n5\n17\n23.00\n12.0\n26.06\n1.0\n70.0\n30.92\n15.70\n29.39\n4.30\n90.30\n58.89\n70.0\n28.37\n20\n90\n2.67\n2\n2.00\n0\n6\nm_2024\n\n\nm\n2025\n10.58\n11.0\n4.95\n3\n20\n21.76\n15.0\n20.22\n0.5\n60.0\n44.75\n18.00\n64.90\n1.67\n227.67\n64.74\n70.0\n15.14\n35\n85\n1.42\n0\n2.09\n0\n8\nm_2025"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-statistiken",
+    "href": "FINKA_2025.html#gruppe-2-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2 Statistiken",
+    "text": "Gruppe 2 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2021\n11.77\n10.0\n4.83\n7\n21\n33.92\n30.00\n27.35\n4.0\n85\n102.56\n55.00\n111.85\n23.67\n411.00\n42.31\n45.0\n12.35\n25\n60\n2.85\n2.0\n2.03\n0\n6\nb_2021\n\n\nb\n2022\nNaN\nNA\n0.00\nInf\n-Inf\nNaN\nNA\n0.00\nInf\n-Inf\nNaN\nNA\n0.00\nInf\n-Inf\nNaN\nNA\n0.00\nInf\n-Inf\nNaN\nNA\n0.00\nInf\n-Inf\nb_2022\n\n\nb\n2023\n16.00\n16.0\n1.41\n15\n17\n30.00\n30.00\n7.07\n25.0\n35\n53.50\n53.50\n50.20\n18.00\n89.00\n25.00\n25.0\n7.07\n20\n30\n0.50\n0.5\n0.71\n0\n1\nb_2023\n\n\nb\n2024\n23.50\n24.0\n5.13\n17\n29\n52.50\n57.50\n18.64\n25.0\n70\n339.50\n238.50\n367.34\n17.70\n995.30\n25.00\n22.5\n6.32\n20\n35\n4.83\n5.0\n1.17\n3\n6\nb_2024\n\n\nb\n2025\n17.67\n16.0\n4.77\n14\n27\n25.33\n25.00\n15.60\n8.0\n55\n195.19\n92.00\n220.16\n17.33\n577.00\n39.44\n35.0\n22.42\n15\n75\n4.00\n4.0\n2.40\n0\n8\nb_2025\n\n\nk\n2021\n3.50\n3.0\n3.23\n0\n9\n4.71\n0.75\n8.51\n0.0\n25\n7.31\n5.00\n8.22\n0.00\n24.33\n70.42\n70.0\n15.59\n50\n100\n0.42\n0.0\n0.79\n0\n2\nk_2021\n\n\nk\n2022\n8.00\n8.0\n8.49\n2\n14\n5.25\n5.25\n6.72\n0.5\n10\n16.83\n16.83\n14.85\n6.33\n27.33\n37.50\n37.5\n17.68\n25\n50\n0.00\n0.0\n0.00\n0\n0\nk_2022\n\n\nk\n2023\n4.33\n4.0\n1.53\n3\n6\n2.33\n0.50\n3.18\n0.5\n6\n3.11\n3.33\n2.34\n0.67\n5.33\n68.33\n70.0\n7.64\n60\n75\n0.00\n0.0\n0.00\n0\n0\nk_2023\n\n\nk\n2024\n11.00\n9.5\n5.94\n6\n19\n7.25\n7.00\n4.43\n3.0\n12\n14.27\n14.70\n3.42\n9.70\n18.00\n68.75\n70.0\n23.94\n40\n95\n1.50\n0.5\n2.38\n0\n5\nk_2024\n\n\nk\n2025\n3.40\n3.0\n2.30\n0\n6\n2.00\n2.00\n2.00\n0.0\n4\n7.00\n0.33\n11.79\n0.00\n27.33\n63.00\n65.0\n16.81\n35\n80\n0.60\n0.0\n0.89\n0\n2\nk_2025\n\n\nm\n2021\n5.25\n4.5\n3.22\n1\n11\n29.08\n20.00\n24.92\n0.5\n75\n33.97\n27.83\n31.29\n0.33\n110.33\n65.50\n65.0\n22.21\n30\n99\n1.08\n1.0\n1.16\n0\n4\nm_2021\n\n\nm\n2022\n8.00\n8.0\n7.07\n3\n13\n25.25\n25.25\n35.00\n0.5\n50\n9.67\n9.67\n12.26\n1.00\n18.33\n37.50\n37.5\n3.54\n35\n40\n2.00\n2.0\n2.83\n0\n4\nm_2022\n\n\nm\n2023\n8.67\n8.0\n5.03\n4\n14\n16.50\n4.00\n24.74\n0.5\n45\n121.44\n59.33\n161.71\n0.00\n305.00\n55.00\n60.0\n18.03\n35\n70\n1.67\n1.0\n1.15\n1\n3\nm_2023\n\n\nm\n2024\n10.75\n11.0\n4.57\n5\n16\n38.25\n38.50\n33.93\n6.0\n70\n48.08\n47.35\n34.33\n7.30\n90.30\n55.00\n55.0\n32.91\n20\n90\n2.50\n2.0\n2.52\n0\n6\nm_2024\n\n\nm\n2025\n9.00\n11.0\n3.67\n5\n12\n13.60\n15.00\n13.74\n1.0\n35\n16.73\n18.00\n14.69\n1.67\n33.33\n63.00\n65.0\n14.83\n40\n80\n1.20\n1.0\n1.30\n0\n3\nm_2025"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5-statistiken",
+    "href": "FINKA_2025.html#gruppe-5-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5 Statistiken",
+    "text": "Gruppe 5 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2022\n8.50\n8.5\n3.54\n6\n11\n0.75\n0.75\n0.35\n0.5\n1.0\n14.00\n14.00\n8.96\n7.67\n20.33\n92.50\n92.5\n3.54\n90\n95\n0.00\n0.0\n0.00\n0\n0\nb_2022\n\n\nb\n2023\n9.33\n10.0\n2.08\n7\n11\n7.67\n8.00\n4.51\n3.0\n12.0\n55.67\n35.67\n47.91\n21.00\n110.33\n58.33\n55.0\n20.21\n40\n80\n1.67\n1.0\n2.08\n0\n4\nb_2023\n\n\nb\n2024\n19.00\n19.0\n0.00\n19\n19\n8.00\n8.00\n0.00\n8.0\n8.0\n20.00\n20.00\n0.00\n20.00\n20.00\n45.00\n45.0\n0.00\n45\n45\n2.00\n2.0\n0.00\n2\n2\nb_2024\n\n\nk\n2022\n6.50\n6.5\n2.12\n5\n8\n13.00\n13.00\n9.90\n6.0\n20.0\n37.17\n37.17\n40.78\n8.33\n66.00\n70.00\n70.0\n14.14\n60\n80\n0.50\n0.5\n0.71\n0\n1\nk_2022\n\n\nk\n2023\n5.67\n5.0\n1.15\n5\n7\n6.83\n10.00\n5.48\n0.5\n10.0\n13.44\n6.33\n17.46\n0.67\n33.33\n92.67\n95.0\n6.81\n85\n98\n0.00\n0.0\n0.00\n0\n0\nk_2023\n\n\nk\n2024\n5.00\n5.0\n0.00\n5\n5\n0.10\n0.10\n0.00\n0.1\n0.1\n0.30\n0.30\n0.00\n0.30\n0.30\n95.00\n95.0\n0.00\n95\n95\n0.00\n0.0\n0.00\n0\n0\nk_2024\n\n\nm\n2022\n7.50\n7.5\n2.12\n6\n9\n4.50\n4.50\n4.95\n1.0\n8.0\n16.33\n16.33\n3.30\n14.00\n18.67\n72.50\n72.5\n24.75\n55\n90\n0.00\n0.0\n0.00\n0\n0\nm_2022\n\n\nm\n2023\n7.67\n7.0\n2.08\n6\n10\n2.67\n3.00\n1.53\n1.0\n4.0\n25.22\n22.33\n22.80\n4.00\n49.33\n88.33\n85.0\n5.77\n85\n95\n0.00\n0.0\n0.00\n0\n0\nm_2023\n\n\nm\n2024\n10.00\n10.0\n0.00\n10\n10\n6.00\n6.00\n0.00\n6.0\n6.0\n50.30\n50.30\n0.00\n50.30\n50.30\n90.00\n90.0\n0.00\n90\n90\n0.00\n0.0\n0.00\n0\n0\nm_2024"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6-statistiken",
+    "href": "FINKA_2025.html#gruppe-6-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6 Statistiken",
+    "text": "Gruppe 6 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2022\n11.5\n11.5\n4.95\n8\n15\n2.00\n2.00\n1.41\n1.0\n3.0\n6.33\n6.33\n1.41\n5.33\n7.33\n72.5\n72.5\n3.54\n70\n75\n1.0\n1.0\n1.41\n0\n2\nb_2022\n\n\nb\n2024\n12.0\n12.0\n1.41\n11\n13\n23.50\n23.50\n16.26\n12.0\n35.0\n33.85\n33.85\n45.47\n1.70\n66.00\n60.0\n60.0\n0.00\n60\n60\n2.5\n2.5\n0.71\n2\n3\nb_2024\n\n\nk\n2022\n2.5\n2.5\n0.71\n2\n3\n0.50\n0.50\n0.00\n0.5\n0.5\n0.00\n0.00\n0.00\n0.00\n0.00\n91.0\n91.0\n1.41\n90\n92\n0.0\n0.0\n0.00\n0\n0\nk_2022\n\n\nk\n2024\n1.5\n1.5\n2.12\n0\n3\n1.00\n1.00\n1.41\n0.0\n2.0\n0.35\n0.35\n0.49\n0.00\n0.70\n87.5\n87.5\n3.54\n85\n90\n0.0\n0.0\n0.00\n0\n0\nk_2024\n\n\nm\n2022\n6.5\n6.5\n2.12\n5\n8\n0.75\n0.75\n0.35\n0.5\n1.0\n4.67\n4.67\n4.71\n1.33\n8.00\n88.5\n88.5\n12.02\n80\n97\n0.5\n0.5\n0.71\n0\n1\nm_2022\n\n\nm\n2024\n13.5\n13.5\n2.12\n12\n15\n7.50\n7.50\n0.71\n7.0\n8.0\n17.00\n17.00\n9.90\n10.00\n24.00\n67.5\n67.5\n10.61\n60\n75\n2.5\n2.5\n2.12\n1\n4\nm_2024"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7-statistiken",
+    "href": "FINKA_2025.html#gruppe-7-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7 Statistiken",
+    "text": "Gruppe 7 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2022\n11.25\n10.5\n4.65\n7\n17\n32.62\n27.50\n32.62\n0.5\n75.0\n56.42\n55.83\n51.80\n0.00\n114.00\n28.75\n30.0\n7.50\n20\n35\n2.50\n2.5\n1.29\n1\n4\nb_2022\n\n\nb\n2023\n13.33\n13.0\n3.51\n10\n17\n33.33\n30.00\n5.77\n30.0\n40.0\n94.11\n88.33\n71.51\n25.67\n168.33\n41.67\n55.0\n23.09\n15\n55\n0.33\n0.0\n0.58\n0\n1\nb_2023\n\n\nb\n2025\n9.50\n9.5\n2.12\n8\n11\n27.50\n27.50\n3.54\n25.0\n30.0\n56.83\n56.83\n12.02\n48.33\n65.33\n47.50\n47.5\n17.68\n35\n60\n1.50\n1.5\n0.71\n1\n2\nb_2025\n\n\nk\n2022\n3.60\n5.0\n1.95\n1\n5\n1.00\n0.50\n1.12\n0.5\n3.0\n4.67\n1.33\n8.60\n0.00\n20.00\n57.00\n60.0\n22.53\n20\n75\n0.80\n1.0\n0.84\n0\n2\nk_2022\n\n\nk\n2023\n3.00\n3.0\n4.24\n0\n6\n0.25\n0.25\n0.35\n0.0\n0.5\n3.67\n3.67\n5.19\n0.00\n7.33\n80.00\n80.0\n14.14\n70\n90\n1.00\n1.0\n1.41\n0\n2\nk_2023\n\n\nk\n2025\n8.00\n8.0\n0.00\n8\n8\n98.00\n98.00\n0.00\n98.0\n98.0\n108.67\n108.67\n0.00\n108.67\n108.67\n35.00\n35.0\n0.00\n35\n35\n1.00\n1.0\n0.00\n1\n1\nk_2025\n\n\nm\n2022\n8.60\n8.0\n3.91\n5\n14\n17.60\n12.00\n16.74\n1.0\n45.0\n22.73\n17.00\n21.36\n3.00\n55.00\n46.00\n50.0\n17.10\n20\n65\n1.60\n1.0\n1.82\n0\n4\nm_2022\n\n\nm\n2023\n12.00\n12.0\n0.00\n12\n12\n2.00\n2.00\n0.00\n2.0\n2.0\n4.67\n4.67\n0.00\n4.67\n4.67\n90.00\n90.0\n0.00\n90\n90\n0.00\n0.0\n0.00\n0\n0\nm_2023\n\n\nm\n2025\n13.00\n13.0\n0.00\n13\n13\n98.00\n98.00\n0.00\n98.0\n98.0\n249.33\n249.33\n0.00\n249.33\n249.33\n40.00\n40.0\n0.00\n40\n40\n3.00\n3.0\n0.00\n3\n3\nm_2025"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-statistiken",
+    "href": "FINKA_2025.html#gruppe-8-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8 Statistiken",
+    "text": "Gruppe 8 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2022\n9.18\n9.0\n4.40\n3\n17\n24.73\n30.0\n13.33\n2.0\n45\n27.67\n31.67\n18.32\n4.33\n62.33\n31.82\n30.0\n19.27\n10\n80\n1.45\n1.0\n1.29\n0\n3\nb_2022\n\n\nb\n2023\n12.83\n13.0\n5.53\n3\n20\n15.67\n12.0\n8.04\n8.0\n30\n30.11\n24.33\n19.05\n11.33\n54.00\n41.67\n40.0\n16.33\n20\n70\n2.17\n3.0\n1.72\n0\n4\nb_2023\n\n\nb\n2024\n12.36\n13.0\n2.94\n6\n16\n24.45\n20.0\n14.19\n4.0\n50\n49.83\n42.30\n36.14\n11.70\n129.70\n22.73\n20.0\n10.09\n5\n40\n1.36\n1.0\n1.21\n0\n4\nb_2024\n\n\nb\n2025\n8.40\n9.0\n2.70\n4\n11\n14.60\n12.0\n8.11\n4.0\n25\n31.00\n21.33\n24.33\n6.67\n61.00\n25.60\n30.0\n13.58\n8\n40\n1.60\n2.0\n1.14\n0\n3\nb_2025\n\n\nk\n2022\n6.09\n5.0\n4.06\n2\n15\n3.14\n0.5\n5.75\n0.0\n20\n7.61\n2.67\n15.06\n0.00\n50.67\n60.45\n60.0\n22.63\n30\n90\n0.64\n0.0\n0.92\n0\n2\nk_2022\n\n\nk\n2023\n6.33\n7.5\n3.27\n0\n9\n3.33\n3.5\n2.80\n0.0\n8\n10.44\n13.33\n6.45\n0.00\n16.33\n65.00\n67.5\n14.83\n45\n80\n0.67\n0.5\n0.82\n0\n2\nk_2023\n\n\nk\n2024\n5.09\n3.0\n5.15\n1\n18\n9.40\n0.5\n20.77\n0.1\n70\n4.51\n1.70\n6.49\n0.00\n20.00\n57.73\n60.0\n21.26\n15\n85\n0.64\n0.0\n1.03\n0\n3\nk_2024\n\n\nk\n2025\n4.00\n5.0\n2.65\n0\n7\n5.33\n4.0\n6.11\n0.0\n12\n201.87\n24.33\n277.64\n0.00\n622.67\n44.40\n40.0\n26.77\n7\n75\n0.20\n0.0\n0.45\n0\n1\nk_2025\n\n\nm\n2022\n11.09\n12.0\n4.53\n5\n19\n26.91\n20.0\n21.82\n1.0\n75\n26.70\n18.00\n26.43\n6.33\n95.00\n51.36\n35.0\n25.01\n15\n90\n1.64\n1.0\n1.63\n0\n5\nm_2022\n\n\nm\n2023\n7.33\n8.0\n3.08\n2\n10\n41.17\n40.0\n22.36\n12.0\n80\n48.78\n41.67\n21.76\n23.67\n82.33\n55.83\n62.5\n24.78\n20\n80\n0.83\n0.5\n1.17\n0\n3\nm_2023\n\n\nm\n2024\n13.42\n13.0\n3.20\n9\n18\n36.00\n35.0\n19.52\n5.0\n70\n57.37\n39.35\n51.28\n0.00\n144.70\n49.17\n50.0\n20.76\n10\n80\n1.67\n1.5\n1.50\n0\n5\nm_2024\n\n\nm\n2025\n5.00\n4.0\n1.41\n4\n7\n39.40\n21.0\n33.03\n6.0\n75\n64.13\n37.00\n70.38\n8.33\n174.00\n33.00\n40.0\n16.05\n5\n45\n0.00\n0.0\n0.00\n0\n0\nm_2025"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9-statistiken",
+    "href": "FINKA_2025.html#gruppe-9-statistiken",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9 Statistiken",
+    "text": "Gruppe 9 Statistiken\n\n\n\nSummary statistics by group and year (original column names)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ngroup\njahr\nartenzahl_flora_mean\nartenzahl_flora_median\nartenzahl_flora_sd\nartenzahl_flora_min\nartenzahl_flora_max\ndeckung_flora_mean\ndeckung_flora_median\ndeckung_flora_sd\ndeckung_flora_min\ndeckung_flora_max\nbluehende_pflanzen_mean\nbluehende_pflanzen_median\nbluehende_pflanzen_sd\nbluehende_pflanzen_min\nbluehende_pflanzen_max\ndeckung_kultur_mean\ndeckung_kultur_median\ndeckung_kultur_sd\ndeckung_kultur_min\ndeckung_kultur_max\nhnv_taxa_mean\nhnv_taxa_median\nhnv_taxa_sd\nhnv_taxa_min\nhnv_taxa_max\ngroup_jahr\n\n\n\n\nb\n2022\n12.33\n12.0\n0.58\n12\n13\n20.00\n20.00\n5.00\n15.0\n25\n81.67\n37.33\n102.00\n9.33\n198.33\n51.67\n35.0\n33.29\n30\n90\n2.33\n2.0\n1.53\n1\n4\nb_2022\n\n\nb\n2023\n15.33\n16.0\n2.08\n13\n17\n31.33\n35.00\n25.70\n4.0\n55\n82.11\n99.33\n64.90\n10.33\n136.67\n53.33\n45.0\n23.63\n35\n80\n2.33\n3.0\n1.15\n1\n3\nb_2023\n\n\nb\n2024\n13.25\n14.5\n3.59\n8\n16\n30.75\n30.00\n24.68\n3.0\n60\n41.60\n23.85\n42.12\n14.70\n104.00\n73.75\n77.5\n23.23\n45\n95\n2.75\n2.0\n2.22\n1\n6\nb_2024\n\n\nk\n2022\n4.50\n4.5\n4.95\n1\n8\n2.00\n2.00\n0.00\n2.0\n2\n9.67\n9.67\n1.41\n8.67\n10.67\n84.00\n84.0\n19.80\n70\n98\n0.00\n0.0\n0.00\n0\n0\nk_2022\n\n\nk\n2023\n11.50\n11.5\n3.54\n9\n14\n30.00\n30.00\n7.07\n25.0\n35\n35.83\n35.83\n26.63\n17.00\n54.67\n69.00\n69.0\n41.01\n40\n98\n0.50\n0.5\n0.71\n0\n1\nk_2023\n\n\nk\n2024\n9.33\n8.0\n3.21\n7\n13\n16.00\n15.00\n13.53\n3.0\n30\n13.97\n14.30\n10.50\n3.30\n24.30\n70.00\n70.0\n25.00\n45\n95\n1.33\n1.0\n1.53\n0\n3\nk_2024\n\n\nm\n2022\n5.50\n5.5\n2.12\n4\n7\n3.25\n3.25\n3.89\n0.5\n6\n4.50\n4.50\n6.36\n0.00\n9.00\n89.00\n89.0\n12.73\n80\n98\n0.50\n0.5\n0.71\n0\n1\nm_2022\n\n\nm\n2023\n11.00\n11.0\n2.83\n9\n13\n50.00\n50.00\n7.07\n45.0\n55\n29.50\n29.50\n17.68\n17.00\n42.00\n76.50\n76.5\n30.41\n55\n98\n2.50\n2.5\n2.12\n1\n4\nm_2023\n\n\nm\n2024\n16.67\n14.0\n5.51\n13\n23\n46.67\n40.00\n16.07\n35.0\n65\n131.43\n150.00\n88.62\n35.00\n209.30\n63.33\n55.0\n28.43\n40\n95\n2.00\n3.0\n1.73\n0\n3\nm_2024"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1",
+    "href": "FINKA_2025.html#gruppe-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2",
+    "href": "FINKA_2025.html#gruppe-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5",
+    "href": "FINKA_2025.html#gruppe-5",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5",
+    "text": "Gruppe 5"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6",
+    "href": "FINKA_2025.html#gruppe-6",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6",
+    "text": "Gruppe 6"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7",
+    "href": "FINKA_2025.html#gruppe-7",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7",
+    "text": "Gruppe 7"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8",
+    "href": "FINKA_2025.html#gruppe-8",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9",
+    "href": "FINKA_2025.html#gruppe-9",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9",
+    "text": "Gruppe 9"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-1",
+    "href": "FINKA_2025.html#gruppe-1-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-1",
+    "href": "FINKA_2025.html#gruppe-2-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5-1",
+    "href": "FINKA_2025.html#gruppe-5-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5",
+    "text": "Gruppe 5"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6-1",
+    "href": "FINKA_2025.html#gruppe-6-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6",
+    "text": "Gruppe 6"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7-1",
+    "href": "FINKA_2025.html#gruppe-7-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7",
+    "text": "Gruppe 7"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-1",
+    "href": "FINKA_2025.html#gruppe-8-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9-1",
+    "href": "FINKA_2025.html#gruppe-9-1",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9",
+    "text": "Gruppe 9"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-2",
+    "href": "FINKA_2025.html#gruppe-1-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-2",
+    "href": "FINKA_2025.html#gruppe-2-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5-2",
+    "href": "FINKA_2025.html#gruppe-5-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5",
+    "text": "Gruppe 5"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6-2",
+    "href": "FINKA_2025.html#gruppe-6-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6",
+    "text": "Gruppe 6"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7-2",
+    "href": "FINKA_2025.html#gruppe-7-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7",
+    "text": "Gruppe 7"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-2",
+    "href": "FINKA_2025.html#gruppe-8-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9-2",
+    "href": "FINKA_2025.html#gruppe-9-2",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9",
+    "text": "Gruppe 9"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-3",
+    "href": "FINKA_2025.html#gruppe-1-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-3",
+    "href": "FINKA_2025.html#gruppe-2-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5-3",
+    "href": "FINKA_2025.html#gruppe-5-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5",
+    "text": "Gruppe 5"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6-3",
+    "href": "FINKA_2025.html#gruppe-6-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6",
+    "text": "Gruppe 6"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7-3",
+    "href": "FINKA_2025.html#gruppe-7-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7",
+    "text": "Gruppe 7"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-3",
+    "href": "FINKA_2025.html#gruppe-8-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9-3",
+    "href": "FINKA_2025.html#gruppe-9-3",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9",
+    "text": "Gruppe 9"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-4",
+    "href": "FINKA_2025.html#gruppe-1-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-4",
+    "href": "FINKA_2025.html#gruppe-2-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-5-4",
+    "href": "FINKA_2025.html#gruppe-5-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 5",
+    "text": "Gruppe 5"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-6-4",
+    "href": "FINKA_2025.html#gruppe-6-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 6",
+    "text": "Gruppe 6"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-7-4",
+    "href": "FINKA_2025.html#gruppe-7-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 7",
+    "text": "Gruppe 7"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-4",
+    "href": "FINKA_2025.html#gruppe-8-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-9-4",
+    "href": "FINKA_2025.html#gruppe-9-4",
+    "title": "2020 - 2025",
+    "section": "Gruppe 9",
+    "text": "Gruppe 9"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-1-5",
+    "href": "FINKA_2025.html#gruppe-1-5",
+    "title": "2020 - 2025",
+    "section": "Gruppe 1",
+    "text": "Gruppe 1\n\nGruppe 1 HNV Werte Statistiken\n\n\n\nSummary statistics hnv values where count = 0 (original column names)\n\n\ngroup\njahr\nhnv_wertgruppe\ncount\ngroup_jahr\n\n\n\n\nb\n2021\nX\n23\nb_2021\n\n\nb\n2021\nIII\n4\nb_2021\n\n\nb\n2021\nII\n2\nb_2021\n\n\nb\n2022\nX\n1\nb_2022\n\n\nb\n2023\nX\n11\nb_2023\n\n\nb\n2023\nIII\n1\nb_2023\n\n\nb\n2024\nX\n2\nb_2024\n\n\nb\n2024\nIII\n4\nb_2024\n\n\nb\n2024\nII\n2\nb_2024\n\n\nb\n2025\nX\n10\nb_2025\n\n\nb\n2025\nIII\n5\nb_2025\n\n\nb\n2025\nII\n1\nb_2025\n\n\nb\n2025\nI\n1\nb_2025\n\n\nk\n2021\nX\n28\nk_2021\n\n\nk\n2021\nIII\n1\nk_2021\n\n\nk\n2022\nX\n3\nk_2022\n\n\nk\n2023\nX\n15\nk_2023\n\n\nk\n2024\nX\n9\nk_2024\n\n\nk\n2024\nIII\n1\nk_2024\n\n\nk\n2025\nX\n19\nk_2025\n\n\nm\n2021\nX\n27\nm_2021\n\n\nm\n2021\nIII\n2\nm_2021\n\n\nm\n2022\nX\n3\nm_2022\n\n\nm\n2023\nX\n13\nm_2023\n\n\nm\n2023\nIII\n2\nm_2023\n\n\nm\n2024\nX\n6\nm_2024\n\n\nm\n2024\nIII\n2\nm_2024\n\n\nm\n2024\nII\n1\nm_2024\n\n\nm\n2025\nX\n16\nm_2025\n\n\nm\n2025\nIII\n3\nm_2025\n\n\n\n\n\n\nSummary statistics hnv values (original column names)\n\n\ngroup\njahr\ngroup_jahr\ntotal_count\n\n\n\n\nb\n2021\nb_2021\n29\n\n\nb\n2022\nb_2022\n1\n\n\nb\n2023\nb_2023\n12\n\n\nb\n2024\nb_2024\n8\n\n\nb\n2025\nb_2025\n17\n\n\nk\n2021\nk_2021\n29\n\n\nk\n2022\nk_2022\n3\n\n\nk\n2023\nk_2023\n15\n\n\nk\n2024\nk_2024\n10\n\n\nk\n2025\nk_2025\n19\n\n\nm\n2021\nm_2021\n29\n\n\nm\n2022\nm_2022\n3\n\n\nm\n2023\nm_2023\n15\n\n\nm\n2024\nm_2024\n9\n\n\nm\n2025\nm_2025\n19\n\n\n\n\n\n\n\nPlot\n\n\n\n\n\n\n\n\n\n\n\nPlot Alternative"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-2-5",
+    "href": "FINKA_2025.html#gruppe-2-5",
+    "title": "2020 - 2025",
+    "section": "Gruppe 2",
+    "text": "Gruppe 2\n\n\n\n\n\n\n\n\n\n\nALternative"
+  },
+  {
+    "objectID": "FINKA_2025.html#gruppe-8-5",
+    "href": "FINKA_2025.html#gruppe-8-5",
+    "title": "2020 - 2025",
+    "section": "Gruppe 8",
+    "text": "Gruppe 8\n\nGruppe 8 HNV Werte Statistiken\n\n\n\nSummary statistics hnv values (original column names)\n\n\ngroup\njahr\nhnv_wertgruppe\ncount\ngroup_jahr\n\n\n\n\nb\n2022\nX\n11\nb_2022\n\n\nb\n2023\nX\n5\nb_2023\n\n\nb\n2023\nIII\n1\nb_2023\n\n\nb\n2024\nX\n10\nb_2024\n\n\nb\n2024\nIII\n1\nb_2024\n\n\nb\n2025\nX\n5\nb_2025\n\n\nk\n2022\nX\n11\nk_2022\n\n\nk\n2023\nX\n6\nk_2023\n\n\nk\n2024\nX\n11\nk_2024\n\n\nk\n2025\nX\n5\nk_2025\n\n\nm\n2022\nX\n10\nm_2022\n\n\nm\n2022\nIII\n1\nm_2022\n\n\nm\n2023\nX\n6\nm_2023\n\n\nm\n2024\nX\n11\nm_2024\n\n\nm\n2024\nIII\n1\nm_2024\n\n\nm\n2025\nX\n5\nm_2025\n\n\n\n\n\n\nSummary statistics hnv values (original column names)\n\n\ngroup\njahr\ngroup_jahr\ntotal_count\n\n\n\n\nb\n2021\nb_2021\n0\n\n\nb\n2022\nb_2022\n11\n\n\nb\n2023\nb_2023\n6\n\n\nb\n2024\nb_2024\n11\n\n\nb\n2025\nb_2025\n5\n\n\nk\n2021\nk_2021\n0\n\n\nk\n2022\nk_2022\n11\n\n\nk\n2023\nk_2023\n6\n\n\nk\n2024\nk_2024\n11\n\n\nk\n2025\nk_2025\n5\n\n\nm\n2021\nm_2021\n0\n\n\nm\n2022\nm_2022\n11\n\n\nm\n2023\nm_2023\n6\n\n\nm\n2024\nm_2024\n12\n\n\nm\n2025\nm_2025\n5\n\n\n\n\n\n\n\nPlot\n\n\n\n\n\n\n\n\n\n\n\nPlot Alternative\n\n\n\n\n\n\n\n\n\n\n\nPlot Alternative 2 (Kürzerer Plot)"
+  }
+]
