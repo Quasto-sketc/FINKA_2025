@@ -3,19 +3,18 @@ project:
   title: "FINKA_2025"
 
 editor: visual
-
 website:
-  title: "today"
+  title: "FINKA 2025"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - about.qmd
-      - finka_2025.qmd
-      - finka_2025_präsentationen.qmd
+      - href: FINKA_2025.qmd
+        text: FINKA_2025
+      - href: finka_2025_präsentationen.qmd
+        text: Präsentationen  # optional: give it a readable label too
 
 format:
   html:
     theme: cosmo
-    css: styles.css
     toc: true
